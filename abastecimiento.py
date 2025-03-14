@@ -59,22 +59,21 @@ def reservas_avisorden_ordenes(connection):
         unir_reservaxorden_aviso['ate_orden'] = 999
         unir_reservaxorden_aviso['valor_flota'] = 0.00
         unir_reservaxorden_aviso['stock_asignado'] = 0.00
-        unir_reservaxorden_aviso['trasl_ctd_c154'] = 0.00
-        unir_reservaxorden_aviso['trasl_ctd_c040'] = 0.00
-        unir_reservaxorden_aviso['trasl_ctd_c080'] = 0.00
-        unir_reservaxorden_aviso['trasl_ctd_c200'] = 0.00
-        unir_reservaxorden_aviso['trasl_ctd_c152'] = 0.00
+        unir_reservaxorden_aviso['trasl_ctd_C154'] = 0.00
+        unir_reservaxorden_aviso['trasl_ctd_C040'] = 0.00
+        unir_reservaxorden_aviso['trasl_ctd_C080'] = 0.00
+        unir_reservaxorden_aviso['trasl_ctd_C200'] = 0.00
+        unir_reservaxorden_aviso['trasl_ctd_C152'] = 0.00
         unir_reservaxorden_aviso['trasl_fecha'] = None
         unir_reservaxorden_aviso['Ped_nro'] = ''
         unir_reservaxorden_aviso['Ped_Fecha'] = None
         unir_reservaxorden_aviso['Ped_ctd'] = 0.00
-        unir_reservaxorden_aviso['Ped_reserva'] = ''
-        unir_reservaxorden_aviso['Ped_nro_necesidad'] = ''
         unir_reservaxorden_aviso['Ped_proveedor'] = ''
         unir_reservaxorden_aviso['estadoreserva'] = ''
 
         unir_reservaxorden_aviso[['ctd_dif','eqvaloradq_usd']] = unir_reservaxorden_aviso[['ctd_dif','eqvaloradq_usd']].astype(float)
         unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['eqvaloradq_usd'].isna(),'eqvaloradq_usd'] = 1
+        unir_reservaxorden_aviso.loc[:,'orden_texto'] = unir_reservaxorden_aviso.loc[:,'orden_texto'].str.lstrip()
 
         unir_reservaxorden_aviso['estadoreserva'] = np.where( (unir_reservaxorden_aviso['orden'] != "") & (unir_reservaxorden_aviso['ot_liberado'] == 'X') & (unir_reservaxorden_aviso['reserva_pos_borrado'] != 'X') ,"Lib Mov.Permitdo", unir_reservaxorden_aviso['estadoreserva'])
         unir_reservaxorden_aviso['estadoreserva'] = np.where( (unir_reservaxorden_aviso['orden'] != "") & (unir_reservaxorden_aviso['ot_liberado'] == '') & (unir_reservaxorden_aviso['reservasolped'] == '3') & (unir_reservaxorden_aviso['reserva_pos_borrado'] != 'X') ,"Aprob Mov.Permitdo", unir_reservaxorden_aviso['estadoreserva'])
@@ -101,6 +100,10 @@ def reservas_avisorden_ordenes(connection):
         # Equipos -> Ordenes de trabajo Libres o Aprovisionadas con Programa Semanal
         # OCO -> 4er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo
         unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 250, unir_reservaxorden_aviso['ate_orden'])
+
+        # OTROS -> 5er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo -- JOSE
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') , 310, unir_reservaxorden_aviso['ate_orden'])
+
         # INO -> 1er Orden Los Inoperativos
         unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 210, unir_reservaxorden_aviso['ate_orden'])
         # MAN -> 2er Orden Los Mantenimientos
@@ -112,39 +115,45 @@ def reservas_avisorden_ordenes(connection):
 
         # Equipos -> Ordenes de trabajo Libres o Aprovisionadas sin Programa Semanal
         # OCO -> 4er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 300, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 300, unir_reservaxorden_aviso['ate_orden'])
         # INO -> 1er Orden Los Inoperativos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 260, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 260, unir_reservaxorden_aviso['ate_orden'])
         # MAN -> 2er Orden Los Mantenimientos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 270, unir_reservaxorden_aviso['ate_orden'])
         # OCO -> 3er Orden Los Operativos con Observaciones
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 290, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) | ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 290, unir_reservaxorden_aviso['ate_orden'])
+
+        # Equipos -> Ordenes de trabajo Libres o Aprovisionadas sin Programa Semanal
+        # OTROS -> 5er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "X" ) & ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') , 930, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull() ) & ((unir_reservaxorden_aviso['reservasolped'] == "3" ))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['aviso'].isnull()) , 935, unir_reservaxorden_aviso['ate_orden'])
+
 
         # Equipos -> Ordenes de trabajo NO Libres o NO Aprovisionadas con Programa Semanal
         # OCO -> 4er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 950, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 950, unir_reservaxorden_aviso['ate_orden'])
         # INO -> 1er Orden Los Inoperativos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 910, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 910, unir_reservaxorden_aviso['ate_orden'])
         # MAN -> 2er Orden Los Mantenimientos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 920, unir_reservaxorden_aviso['ate_orden'])
         # OCO -> 3er Orden Los Operativos con Observaciones
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 940, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 940, unir_reservaxorden_aviso['ate_orden'])
 
         # Equipos -> Ordenes de trabajo NO Libres o NO Aprovisionadas sin Programa Semanal
         # OCO -> 4er Todas las Ordenes Liberadas o con Aprovisionamiento, con Numero de semana, de Campo
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 990, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') , 990, unir_reservaxorden_aviso['ate_orden'])
         # INO -> 1er Orden Los Inoperativos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 960, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "I"), 960, unir_reservaxorden_aviso['ate_orden'])
         # MAN -> 2er Orden Los Mantenimientos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento Preventivo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Mantenimiento SSGG') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "M"), 970, unir_reservaxorden_aviso['ate_orden'])
         # OCO -> 3er Orden Los Operativos con Observaciones
-        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'] == "" ) & ((unir_reservaxorden_aviso['reservasolped'] == "" ))) & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 980, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( ((unir_reservaxorden_aviso['ot_liberado'].isnull()) & ((unir_reservaxorden_aviso['reservasolped'].isnull()))) & (unir_reservaxorden_aviso['orden_revision'].isnull()) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Campo') & (unir_reservaxorden_aviso['orden_texto'].str[0]== "O"), 980, unir_reservaxorden_aviso['ate_orden'])
 
         # Agrupar por Valor de Flota
         lista_criterio1 = list(unir_reservaxorden_aviso["proyecto"])
@@ -159,30 +168,30 @@ def reservas_avisorden_ordenes(connection):
 
         # STT
         # ---
-
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "")  & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller'), 999, unir_reservaxorden_aviso['ate_orden'])
+        
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'].isnull())  & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller'), 999, unir_reservaxorden_aviso['ate_orden'])
         # Equipos -> Ordenes de trabajo Libres con Programa Semanal
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación"), 230, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Preparación"), 230, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación venta"), 230, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Alistamiento"), 240, unir_reservaxorden_aviso['ate_orden'])
-
+        
         # Equipos -> Ordenes de trabajo Libres sin Programa Semanal
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación"), 280, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Preparación"), 280, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación venta"), 280, unir_reservaxorden_aviso['ate_orden'])
         unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "X")  & (~(unir_reservaxorden_aviso['orden_revision'].str[0]== "C")) & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Alistamiento"), 290, unir_reservaxorden_aviso['ate_orden'])
-
+        
         # Equipos -> Ordenes de trabajo NO Libres
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación"), 990, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Preparación"), 990, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación venta"), 990, unir_reservaxorden_aviso['ate_orden'])
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'] == "")  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Alistamiento"), 990, unir_reservaxorden_aviso['ate_orden'])
-
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'].isnull())  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación"), 990, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'].isnull())  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Preparación"), 990, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'].isnull())  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Reparación venta"), 990, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['ot_liberado'].isnull())  & (unir_reservaxorden_aviso['orden_revision'].str[0]== "C") & (unir_reservaxorden_aviso['oden_clase_deno'] == 'Reparación Taller') & (unir_reservaxorden_aviso['orden_claact_deno'] == "Alistamiento"), 990, unir_reservaxorden_aviso['ate_orden'])
+        
         # 2.3 Equipamiento y Otros
-
+        
         # Reservas para Centro de Costos
-        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['orden'] == ''), 500, unir_reservaxorden_aviso['ate_orden'])
+        unir_reservaxorden_aviso['ate_orden'] = np.where( (unir_reservaxorden_aviso['orden'].isnull()), 500, unir_reservaxorden_aviso['ate_orden'])
         # Ordenes de Proyecto: 1 (113xxxx -> Proyectos de Mejora / 114xxxxx -> Compra de Activos / 18xxx -> Proyectos Campo) 
         unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['orden'].str[0] == "1" , 'ate_orden'] = 600
         # Ordenes de Proyecto: 2
@@ -198,7 +207,7 @@ def reservas_avisorden_ordenes(connection):
         tabla_material['material'] = tabla_material['material'].str.replace(' ','')
 
         reservaxorden_material = unir_reservaxorden_aviso.merge(tabla_material,how='left',on='material')
-        reservaxorden_material['identificador']=(reservaxorden_material['orden']+reservaxorden_material['reserva']+reservaxorden_material['reservapos'])
+        reservaxorden_material['identificador']=(reservaxorden_material['orden'].fillna('')+reservaxorden_material['reserva']+reservaxorden_material['reservapos'])
         reservaxorden_material = reservaxorden_material.sort_values(by = ['ate_orden', 'valor_flota','fe_nece', 'reserva', 'reservapos'], ascending = [True, False, True, True, True], na_position = 'last').reset_index(drop=True)
         reservaxorden_material['index'] = reservaxorden_material.index
 
@@ -206,7 +215,7 @@ def reservas_avisorden_ordenes(connection):
     
     except Exception as e:
 
-        print(f"Error al ejecutar el procedimiento cruce_inventario: {e}")
+        print(f"Error al ejecutar el modulo de abastecimiento: {e}")
         return []
 
     finally:

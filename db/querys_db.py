@@ -68,3 +68,15 @@ def procedure_data(connection, query):
 
         print(f"Error al ejecutar el procedimiento: {e}")
         return []  # Devuelve una lista vacía en caso de error
+
+
+def procedure_data_param(connection, procedure_name, params):
+    try:
+        with connection.cursor() as cursor:
+            query = f"CALL {procedure_name}(%s);"  # Se usa `%s` como placeholder
+            cursor.execute(query, params)
+            connection.commit()
+            print("El procedimiento se ha ejecutado correctamente")
+        
+    except Exception as e:
+        print(f"Error al ejecutar el procedimiento: {e}")
