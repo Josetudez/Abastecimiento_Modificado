@@ -17,12 +17,12 @@ def reservas_avisorden_ordenes(connection):
 
         ordenes = consult_data(connection,f"select orden,claot,equipo,material,felib,orden_texto,orden_estsis,reservasolped,orden_prio,orden_prio_texto,orden_revision,estatususuarioorden,gruplan from {pl_ordenes}")
         
-       #material = consult_data(connection,'select material,Cod_mate_antiguo,Grp_mat,Tp_mat,Jerarquia_produc from tbl_materialesIH09')
+        material = consult_data(connection,'select material,Cod_mate_antiguo,Grp_mat,Tp_mat,Jerarquia_produc from tbl_materialesIH09')
 
         tabla_reservas = pd.DataFrame(reservas)
         tabla_ordenes = pd.DataFrame(ordenes)
         tabla_aviso = pd.DataFrame(aviso_orden)
-        #tabla_material = pd.DataFrame(material)
+        tabla_material = pd.DataFrame(material)
 
         tabla_aviso.drop_duplicates(['orden'],inplace=True)
         tabla_ordenes.drop_duplicates(['orden'],inplace=True)
@@ -39,8 +39,24 @@ def reservas_avisorden_ordenes(connection):
         unir_reservaxorden_aviso.where(pd.notna(unir_reservaxorden_aviso),None,inplace=True)
 
         # Alterando el grupo_planif para los casos de STC que son STT
+        unir_reservaxorden_aviso['validacion'] = ''
+        unir_reservaxorden_aviso.loc[(~(unir_reservaxorden_aviso['eq_est_usu'].str.contains('ALQL',case=False, na=False)) & (unir_reservaxorden_aviso['eq_est_usu'].notnull()) & (unir_reservaxorden_aviso['grupo_planif'] == 'STC') & (unir_reservaxorden_aviso['claot'].isin(['YM02','YM03']))), 'validacion'] = 'X'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['eq_est_usu'].str.contains('ALQL',case=False, na=False)) & (unir_reservaxorden_aviso['claot'].isin(['YM01']))), 'validacion'] = 'X'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['eq_est_usu'].str.contains('ALQL',case=False, na=False))) & (unir_reservaxorden_aviso['claot'].isin(['YM03'])) & (unir_reservaxorden_aviso['grupo_planif'] == 'STT'), 'validacion'] = 'X'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['eq_est_usu']== 'VEND') & (unir_reservaxorden_aviso['grupo_planif'] == 'STT')), 'validacion'] = 'X'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['grupo_planif'] == 'STT') & (unir_reservaxorden_aviso['claot'] == 'YM03')), 'validacion'] = 'X'
+
+        unir_reservaxorden_aviso['fe_nece'] = pd.to_datetime(unir_reservaxorden_aviso['fe_nece'], format='%Y-%m-%d')
+
+        Ultimo_mes_ym03 = pd.to_datetime('today').month -2
+        Ultimo_mes_ym02 = pd.to_datetime('today').month -3
         
-        unir_reservaxorden_aviso.loc[(~(unir_reservaxorden_aviso['eq_est_usu'].str.contains('alql',case=False, na=False)) & (unir_reservaxorden_aviso['eq_est_usu'].notnull()) & (unir_reservaxorden_aviso['grupo_planif'] == 'STC') & (unir_reservaxorden_aviso['claot'].isin(['YM02','YM03']))), 'grupo_planif'] = 'STT'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['claot'] == 'YM03') & (unir_reservaxorden_aviso['fe_nece'].dt.month < Ultimo_mes_ym03)),'validacion'] = 'X'
+        unir_reservaxorden_aviso.loc[((unir_reservaxorden_aviso['claot'] == 'YM02') & (unir_reservaxorden_aviso['fe_nece'].dt.month < Ultimo_mes_ym02)),'validacion'] = 'X'
+
+
+        unir_reservaxorden_aviso = unir_reservaxorden_aviso.loc[(unir_reservaxorden_aviso['validacion'] != 'X')].reset_index(drop=True)
+
 
         unir_reservaxorden_aviso['felib'] = np.where( unir_reservaxorden_aviso['felib_x'].isnull(), unir_reservaxorden_aviso['felib_y']  , unir_reservaxorden_aviso['felib_x'])
         unir_reservaxorden_aviso['equipo'] = np.where( unir_reservaxorden_aviso['equipo_x'].isnull(), unir_reservaxorden_aviso['equipo_y']  , unir_reservaxorden_aviso['equipo_x'])
@@ -204,19 +220,18 @@ def reservas_avisorden_ordenes(connection):
         # Ordenes de Capacitacion: 7
         unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['orden'].str[0] == "7" , 'ate_orden'] = 640
 
+        unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['orden'].str[0] == "1"  , 'ate_accion'] = 'PROYECTO'
+        unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['orden'].str[0] == "2"  , 'ate_accion'] = 'PROYECTO'
+        unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['orden'].str[0] == "7" , 'ate_accion'] = 'CAPACITACION'
+
         # Las reservas que no se vana utilizar (ate_accion = "FIN"), colocar 999
         unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['ate_accion'] == "FIN" , 'ate_orden'] = 999
         unir_reservaxorden_aviso.loc[unir_reservaxorden_aviso['ate_orden'] == 999 , 'ate_accion'] = "FIN"
 
         unir_reservaxorden_aviso['material'] = unir_reservaxorden_aviso['material'].str.replace(' ','')
-        #tabla_material['material'] = tabla_material['material'].str.replace(' ','')
+        tabla_material['material'] = tabla_material['material'].str.replace(' ','')
 
-        reservaxorden_material = unir_reservaxorden_aviso#.merge(tabla_material,how='left',on='material')
-        reservaxorden_material['Cod_mate_antiguo'] =''
-        reservaxorden_material['Grp_mat'] =''
-        reservaxorden_material['Tp_mat'] =''
-        reservaxorden_material['Jerarquia_produc'] =''
-    
+        reservaxorden_material = unir_reservaxorden_aviso.merge(tabla_material,how='left',on='material')
         reservaxorden_material['identificador']=(reservaxorden_material['orden'].fillna('')+reservaxorden_material['reserva']+reservaxorden_material['reservapos'])
         reservaxorden_material = reservaxorden_material.sort_values(by = ['ate_orden', 'valor_flota','fe_nece', 'reserva', 'reservapos'], ascending = [True, False, True, True, True], na_position = 'last').reset_index(drop=True)
         reservaxorden_material['index'] = reservaxorden_material.index
